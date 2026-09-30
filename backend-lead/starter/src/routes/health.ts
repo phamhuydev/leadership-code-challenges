@@ -3,7 +3,11 @@ import { sequelize } from '../db/sequelize';
 
 export const healthRouter = Router();
 
-healthRouter.get('/', async (_req, res) => {
-  await sequelize.authenticate();
-  res.json({ status: 'ok' });
+healthRouter.get('/', async (_req, res, next) => {
+  try {
+    await sequelize.authenticate();
+    res.json({ status: 'ok' });
+  } catch (err) {
+    next(err);
+  }
 });

@@ -5,7 +5,7 @@ import BigNumber from 'bignumber.js';
 // - All arithmetic on money MUST go through BigNumber. Never use JS number math on money.
 BigNumber.config({ DECIMAL_PLACES: 18, ROUNDING_MODE: BigNumber.ROUND_DOWN });
 
-export function dec(value: string | number | BigNumber): BigNumber {
+export function dec(value: string | BigNumber): BigNumber {
   const bn = new BigNumber(value);
   if (!bn.isFinite()) {
     throw new Error(`Invalid money value: ${value}`);
@@ -13,4 +13,4 @@ export function dec(value: string | number | BigNumber): BigNumber {
   return bn;
 }
 
-export const ZERO = dec(0);
+export const ZERO = dec('0');

@@ -1,0 +1,379 @@
+{
+  "info": {
+    "_postman_id": "75d8f65b-3a74-4224-93b6-0a25efabf28f",
+    "name": "Mini Wallet Service",
+    "description": "Import this collection into Postman, start the API, then run the requests in order. Response scripts retain the generated member, wallet, deposit, and PSP reference IDs as collection variables.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000"
+    },
+    {
+      "key": "memberId",
+      "value": ""
+    },
+    {
+      "key": "walletId",
+      "value": ""
+    },
+    {
+      "key": "turnoverDepositId",
+      "value": ""
+    },
+    {
+      "key": "turnoverDepositPspRef",
+      "value": ""
+    },
+    {
+      "key": "liquidityDepositId",
+      "value": ""
+    },
+    {
+      "key": "liquidityDepositPspRef",
+      "value": ""
+    },
+    {
+      "key": "withdrawalId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/health"
+      }
+    },
+    {
+      "name": "Create member",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('returns 201', () => pm.response.to.have.status(201));",
+              "const body = pm.response.json();",
+              "pm.collectionVariables.set('memberId', body.member.id);",
+              "pm.collectionVariables.set('walletId', body.wallet.id);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"phamhuy\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{baseUrl}}/members",
+        "description": "Run once per clean database. Change the username if it already exists."
+      }
+    },
+    {
+      "name": "Create turnover deposit",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('returns a pending deposit', () => pm.response.to.have.status(201));",
+              "const body = pm.response.json();",
+              "pm.collectionVariables.set('turnoverDepositId', body.id);",
+              "pm.collectionVariables.set('turnoverDepositPspRef', body.pspRef);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"memberId\": \"{{memberId}}\",\n  \"amount\": \"100.00\",\n  \"turnoverMultiplier\": 1\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{baseUrl}}/deposits",
+        "description": "Creates a pending deposit with a 100.00 turnover requirement."
+      }
+    },
+    {
+      "name": "Complete turnover deposit callback",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('applies the callback', () => {",
+              "  pm.response.to.have.status(200);",
+              "  pm.expect(pm.response.json().applied).to.eql(true);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"pspRef\": \"{{turnoverDepositPspRef}}\",\n  \"status\": \"completed\",\n  \"amount\": \"100.00\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{baseUrl}}/psp/callbacks"
+      }
+    },
+    {
+      "name": "Retry turnover deposit callback",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('is idempotent', () => {",
+              "  pm.response.to.have.status(200);",
+              "  pm.expect(pm.response.json().applied).to.eql(false);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"pspRef\": \"{{turnoverDepositPspRef}}\",\n  \"status\": \"completed\",\n  \"amount\": \"100.00\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{baseUrl}}/psp/callbacks",
+        "description": "Verifies that a sequential PSP retry does not credit the wallet again."
+      }
+    },
+    {
+      "name": "Create liquidity deposit",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('returns a pending deposit', () => pm.response.to.have.status(201));",
+              "const body = pm.response.json();",
+              "pm.collectionVariables.set('liquidityDepositId', body.id);",
+              "pm.collectionVariables.set('liquidityDepositPspRef', body.pspRef);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"memberId\": \"{{memberId}}\",\n  \"amount\": \"100.00\",\n  \"turnoverMultiplier\": 0\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{baseUrl}}/deposits",
+        "description": "Adds withdrawable liquidity after the turnover requirement is met."
+      }
+    },
+    {
+      "name": "Complete liquidity deposit callback",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('applies the callback', () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"pspRef\": \"{{liquidityDepositPspRef}}\",\n  \"status\": \"completed\",\n  \"amount\": \"100.00\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{baseUrl}}/psp/callbacks"
+      }
+    },
+    {
+      "name": "Withdrawal blocked by turnover",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('reports the outstanding turnover', () => {",
+              "  pm.response.to.have.status(422);",
+              "  pm.expect(pm.response.json().outstandingTurnover).to.eql('100.000000000000000000');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"memberId\": \"{{memberId}}\",\n  \"amount\": \"50.00\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{baseUrl}}/withdrawals"
+      }
+    },
+    {
+      "name": "Record wager",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('records the wager', () => pm.response.to.have.status(201));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"amount\": \"100.00\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{baseUrl}}/wallets/{{walletId}}/wagers"
+      }
+    },
+    {
+      "name": "Create withdrawal",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('creates a pending withdrawal', () => pm.response.to.have.status(201));",
+              "pm.collectionVariables.set('withdrawalId', pm.response.json().id);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"memberId\": \"{{memberId}}\",\n  \"amount\": \"50.00\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{baseUrl}}/withdrawals"
+      }
+    },
+    {
+      "name": "Get wallet",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/members/{{memberId}}/wallet",
+        "description": "After the collection flow, the expected balance is 50.000000000000000000."
+      }
+    }
+  ]
+}
